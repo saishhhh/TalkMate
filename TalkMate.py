@@ -3,9 +3,9 @@ import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import io
-import sounddevice as sd
-import numpy as np
-import wavio
+from pydub import AudioSegment
+from pydub.playback import play
+import os
 
 # Popular languages for translation
 LANGUAGES = {
@@ -25,16 +25,11 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
-# Function to record audio
-def record_audio(duration=10, fs=44100):
+# Function to record audio using pydub
+def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
-    audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
-    sd.wait()  # Wait until recording is finished
-    return audio_data, fs
-
-# Function to save audio as a .wav file
-def save_audio(audio_data, fs, filename="output.wav"):
-    wavio.write(filename, audio_data, fs, sampwidth=2)
+    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")
+    return filename
 
 def main():
     st.title("Language Translator")
@@ -49,13 +44,12 @@ def main():
     if input_method == "Audio":
         if st.button("Record and Translate"):
             # Record audio
-            audio_data, fs = record_audio(duration=10)
-            save_audio(audio_data, fs)
+            filename = record_audio(duration=10)
 
             # Recognize speech
             r = sr.Recognizer()
             translator = Translator()
-            with sr.AudioFile("output.wav") as source:
+            with sr.AudioFile(filename) as source:
                 audio = r.record(source)
                 try:
                     speech_text = r.recognize_google(audio)
