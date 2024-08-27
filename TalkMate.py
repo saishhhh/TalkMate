@@ -9,17 +9,12 @@ LANGUAGES = {
     'Hindi': 'hi',
     'French': 'fr',
     'Spanish': 'es',
+    'Arabic': 'ar',
+    'Japanese': 'ja',
+    'Russian': 'ru',
     'German': 'de',
     'Chinese': 'zh-cn',
-    'Japanese': 'ja',
-    'Korean': 'ko',
-    'Russian': 'ru',
     'Italian': 'it',
-    'Portuguese': 'pt',
-    'Arabic': 'ar',
-    'Turkish': 'tr',
-    'Dutch': 'nl',
-    'Swedish': 'sv'
 }
 
 # Function to record audio using ffmpeg for 10 seconds
