@@ -1,7 +1,5 @@
 streamlit
-speechrecognition
-google-trans-new
-playsound==1.2.2
+google-cloud-speech
+google-auth
 googletrans==4.0.0-rc1
 gtts
-pydub
