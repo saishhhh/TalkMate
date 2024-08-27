@@ -1,8 +1,14 @@
 import streamlit as st
-import speech_recognition as sr
+from google.cloud import speech
+import google.auth
 from googletrans import Translator
 from gtts import gTTS
 import io
+import pyaudio
+
+# Google Cloud setup
+credentials, project = google.auth.default()
+client = speech.SpeechClient(credentials=credentials)
 
 # Popular languages for translation
 LANGUAGES = {
@@ -23,51 +29,48 @@ LANGUAGES = {
 }
 
 def main():
-    st.title("Language Translator")
+    st.title("Real-Time Language Translator")
 
     # Language selection
     language = st.selectbox("Choose a language to translate to:", list(LANGUAGES.keys()))
     lang_code = LANGUAGES[language]
 
-    # Option to choose between audio or text input
-    input_method = st.radio("Choose input method:", ("Audio", "Text"))
+    # Stream from the microphone
+    if st.button("Start Listening and Translate"):
+        st.write("Listening...")
 
-    if input_method == "Audio":
-        if st.button("Record and Translate"):
-            st.write("Listening...")
-            r = sr.Recognizer()
-            translator = Translator()
+        # Set up the microphone and stream
+        mic = pyaudio.PyAudio()
+        stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
 
-            with sr.Microphone() as source:
-                try:
-                    audio = r.listen(source, timeout=10)
-                    speech_text = r.recognize_google(audio)
-                    st.write(f"Recognized text: {speech_text}")
+        # Google Cloud Speech API configuration
+        streaming_config = speech.StreamingRecognitionConfig(
+            config=speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=16000,
+                language_code="en-US"
+            ),
+            interim_results=True
+        )
 
-                    # Translate the recognized text
-                    translated_text = translator.translate(speech_text, dest=lang_code).text
-                    st.write(f"Translated text: {translated_text}")
+        # Generator function to stream audio
+        def generate_audio():
+            while True:
+                data = stream.read(1024)
+                yield speech.StreamingRecognizeRequest(audio_content=data)
 
-                    # Convert translated text to speech
-                    voice = gTTS(translated_text, lang=lang_code)
-                    audio_bytes = io.BytesIO()
-                    voice.write_to_fp(audio_bytes)
-                    audio_bytes.seek(0)
+        # Perform real-time speech recognition
+        responses = client.streaming_recognize(config=streaming_config, requests=generate_audio())
 
-                    # Display the audio player
-                    st.audio(audio_bytes, format='audio/mp3')
+        # Handle the responses
+        for response in responses:
+            if response.results and response.results[0].alternatives:
+                speech_text = response.results[0].alternatives[0].transcript
+                st.write(f"Recognized text: {speech_text}")
 
-                except sr.UnknownValueError:
-                    st.error("Couldn't understand. Please try again.")
-                except sr.RequestError as e:
-                    st.error(f"Error with the speech recognition service; {e}")
-
-    elif input_method == "Text":
-        text_input = st.text_area("Enter text to translate:")
-        if st.button("Translate Text"):
-            if text_input:
+                # Translate the recognized text
                 translator = Translator()
-                translated_text = translator.translate(text_input, dest=lang_code).text
+                translated_text = translator.translate(speech_text, dest=lang_code).text
                 st.write(f"Translated text: {translated_text}")
 
                 # Convert translated text to speech
@@ -78,8 +81,6 @@ def main():
 
                 # Display the audio player
                 st.audio(audio_bytes, format='audio/mp3')
-            else:
-                st.warning("Please enter some text.")
 
     # Footer text
     st.markdown("""
@@ -91,7 +92,6 @@ def main():
             width: 100%;
             text-align: center;
             padding: 10px;
-            background-color: #000;
             color: #999;
             font-size: 12px;
         }
