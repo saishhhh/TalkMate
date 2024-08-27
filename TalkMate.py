@@ -4,7 +4,8 @@ import google.auth
 from googletrans import Translator
 from gtts import gTTS
 import io
-import pyaudio
+import sounddevice as sd
+import numpy as np
 
 # Google Cloud setup
 credentials, project = google.auth.default()
@@ -35,13 +36,8 @@ def main():
     language = st.selectbox("Choose a language to translate to:", list(LANGUAGES.keys()))
     lang_code = LANGUAGES[language]
 
-    # Stream from the microphone
     if st.button("Start Listening and Translate"):
         st.write("Listening...")
-
-        # Set up the microphone and stream
-        mic = pyaudio.PyAudio()
-        stream = mic.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
 
         # Google Cloud Speech API configuration
         streaming_config = speech.StreamingRecognitionConfig(
@@ -53,11 +49,13 @@ def main():
             interim_results=True
         )
 
-        # Generator function to stream audio
+        # Generator function to stream audio from the microphone
         def generate_audio():
-            while True:
-                data = stream.read(1024)
-                yield speech.StreamingRecognizeRequest(audio_content=data)
+            with sd.InputStream(samplerate=16000, channels=1, dtype='int16') as stream:
+                while True:
+                    audio_data = stream.read(1024)
+                    data = np.frombuffer(audio_data[0], dtype='int16')
+                    yield speech.StreamingRecognizeRequest(audio_content=data.tobytes())
 
         # Perform real-time speech recognition
         responses = client.streaming_recognize(config=streaming_config, requests=generate_audio())
