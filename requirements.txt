@@ -4,6 +4,4 @@ google-trans-new
 playsound==1.2.2
 googletrans==4.0.0-rc1
 gtts
-sounddevice
-numpy
-wavio
+pydub
