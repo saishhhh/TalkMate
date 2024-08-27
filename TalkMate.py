@@ -1,7 +1,5 @@
 import streamlit as st
-import sounddevice as sd
-import numpy as np
-import wavio
+from streamlit_audio_recorder import audio_recorder
 import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
@@ -25,16 +23,6 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
-# Function to record audio using sounddevice for 10 seconds
-def record_audio(filename="output.wav", duration=10):
-    st.write("Recording...")
-    fs = 44100  # Sampling frequency
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=2, dtype='int16')
-    sd.wait()  # Wait until the recording is finished
-    wavio.write(filename, recording, fs, sampwidth=2)
-    st.write("Recording complete.")
-    return filename
-
 def main():
     st.title("Language Translator")
 
@@ -46,14 +34,16 @@ def main():
     input_method = st.radio("Choose input method:", ("Audio", "Text"))
 
     if input_method == "Audio":
-        if st.button("Record and Translate"):
-            # Record audio for 10 seconds
-            filename = record_audio(duration=10)
-
+        st.write("Record your audio:")
+        audio_data = audio_recorder()
+        if audio_data is not None:
+            with open("output.wav", "wb") as f:
+                f.write(audio_data)
+            
             # Recognize speech
             r = sr.Recognizer()
             translator = Translator()
-            with sr.AudioFile(filename) as source:
+            with sr.AudioFile("output.wav") as source:
                 audio = r.record(source)
                 try:
                     speech_text = r.recognize_google(audio)
