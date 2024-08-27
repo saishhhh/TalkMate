@@ -3,6 +3,9 @@ import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import io
+import sounddevice as sd
+import numpy as np
+import wavio
 
 # Popular languages for translation
 LANGUAGES = {
@@ -22,6 +25,17 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
+# Function to record audio
+def record_audio(duration=10, fs=44100):
+    st.write("Recording...")
+    audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
+    sd.wait()  # Wait until recording is finished
+    return audio_data, fs
+
+# Function to save audio as a .wav file
+def save_audio(audio_data, fs, filename="output.wav"):
+    wavio.write(filename, audio_data, fs, sampwidth=2)
+
 def main():
     st.title("Language Translator")
 
@@ -34,13 +48,16 @@ def main():
 
     if input_method == "Audio":
         if st.button("Record and Translate"):
-            st.write("Listening...")
+            # Record audio
+            audio_data, fs = record_audio(duration=10)
+            save_audio(audio_data, fs)
+
+            # Recognize speech
             r = sr.Recognizer()
             translator = Translator()
-
-            with sr.Microphone() as source:
+            with sr.AudioFile("output.wav") as source:
+                audio = r.record(source)
                 try:
-                    audio = r.listen(source, timeout=10)
                     speech_text = r.recognize_google(audio)
                     st.write(f"Recognized text: {speech_text}")
 
@@ -95,10 +112,4 @@ def main():
             font-size: 12px;
         }
         </style>
-        <div class="footer">
-            Developed by Saish M Patil
-        </div>
-    """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
+    
