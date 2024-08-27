@@ -1,5 +1,10 @@
 streamlit
-speechrecognition
+google-cloud-speech
+google-auth
 googletrans==4.0.0-rc1
+speechrecognition
+googletrans
 gtts
-streamlit_audio_recorder
+sounddevice
+numpy
+wavio
