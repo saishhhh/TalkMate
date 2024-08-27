@@ -1,7 +1,5 @@
 streamlit
 speechrecognition
-googletrans
+googletrans==4.0.0-rc1
 gtts
-sounddevice
-numpy
-wavio
+streamlit_audio_recorder
