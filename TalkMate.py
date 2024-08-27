@@ -1,9 +1,8 @@
 import streamlit as st
-from streamlit_audio_recorder import audio_recorder
-import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import io
+import os
 
 # Popular languages for translation
 LANGUAGES = {
@@ -23,6 +22,12 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
+# Function to record audio using ffmpeg for 10 seconds
+def record_audio(filename="output.wav", duration=10):
+    st.write("Recording...")
+    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
+    return filename
+
 def main():
     st.title("Language Translator")
 
@@ -34,38 +39,34 @@ def main():
     input_method = st.radio("Choose input method:", ("Audio", "Text"))
 
     if input_method == "Audio":
-        st.write("Record your audio:")
-        audio_data = audio_recorder()
-        if audio_data is not None:
-            with open("output.wav", "wb") as f:
-                f.write(audio_data)
-            
-            # Recognize speech
-            r = sr.Recognizer()
-            translator = Translator()
-            with sr.AudioFile("output.wav") as source:
-                audio = r.record(source)
-                try:
-                    speech_text = r.recognize_google(audio)
-                    st.write(f"Recognized text: {speech_text}")
+        if st.button("Record and Translate"):
+            # Record audio for 10 seconds
+            filename = record_audio(duration=10)
 
-                    # Translate the recognized text
-                    translated_text = translator.translate(speech_text, dest=lang_code).text
-                    st.write(f"Translated text: {translated_text}")
+            # Recognize speech using Google Web Speech API
+            try:
+                r = sr.Recognizer()
+                with sr.AudioFile(filename) as source:
+                    audio = r.record(source)
+                speech_text = r.recognize_google(audio)
+                st.write(f"Recognized text: {speech_text}")
 
-                    # Convert translated text to speech
-                    voice = gTTS(translated_text, lang=lang_code)
-                    audio_bytes = io.BytesIO()
-                    voice.write_to_fp(audio_bytes)
-                    audio_bytes.seek(0)
+                # Translate the recognized text
+                translator = Translator()
+                translated_text = translator.translate(speech_text, dest=lang_code).text
+                st.write(f"Translated text: {translated_text}")
 
-                    # Display the audio player
-                    st.audio(audio_bytes, format='audio/mp3')
+                # Convert translated text to speech
+                voice = gTTS(translated_text, lang=lang_code)
+                audio_bytes = io.BytesIO()
+                voice.write_to_fp(audio_bytes)
+                audio_bytes.seek(0)
 
-                except sr.UnknownValueError:
-                    st.error("Couldn't understand the audio. Please try again.")
-                except sr.RequestError as e:
-                    st.error(f"Error with the speech recognition service: {e}")
+                # Display the audio player
+                st.audio(audio_bytes, format='audio/mp3')
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
 
     elif input_method == "Text":
         text_input = st.text_area("Enter text to translate:")
