@@ -112,4 +112,10 @@ def main():
             font-size: 12px;
         }
         </style>
-    
+        <div class="footer">
+            Developed by Saish M Patil
+        </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
