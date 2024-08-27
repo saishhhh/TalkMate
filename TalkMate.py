@@ -3,8 +3,6 @@ import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import io
-from pydub import AudioSegment
-from pydub.playback import play
 import os
 
 # Popular languages for translation
@@ -25,10 +23,15 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
-# Function to record audio using pydub
+# Function to record audio using speech_recognition for 10 seconds
 def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
-    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.write(f"Listening for {duration} seconds...")
+        audio = r.listen(source, timeout=duration, phrase_time_limit=duration)
+        with open(filename, "wb") as f:
+            f.write(audio.get_wav_data())
     return filename
 
 def main():
@@ -43,7 +46,7 @@ def main():
 
     if input_method == "Audio":
         if st.button("Record and Translate"):
-            # Record audio
+            # Record audio for 10 seconds
             filename = record_audio(duration=10)
 
             # Recognize speech
