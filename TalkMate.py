@@ -1,9 +1,11 @@
 import streamlit as st
+import sounddevice as sd
+import numpy as np
+import wavio
 import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import io
-import os
 
 # Popular languages for translation
 LANGUAGES = {
@@ -23,15 +25,14 @@ LANGUAGES = {
     'Swedish': 'sv'
 }
 
-# Function to record audio using speech_recognition for 10 seconds
+# Function to record audio using sounddevice for 10 seconds
 def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write(f"Listening for {duration} seconds...")
-        audio = r.listen(source, timeout=duration, phrase_time_limit=duration)
-        with open(filename, "wb") as f:
-            f.write(audio.get_wav_data())
+    fs = 44100  # Sampling frequency
+    recording = sd.rec(int(duration * fs), samplerate=fs, channels=2, dtype='int16')
+    sd.wait()  # Wait until the recording is finished
+    wavio.write(filename, recording, fs, sampwidth=2)
+    st.write("Recording complete.")
     return filename
 
 def main():
@@ -72,9 +73,9 @@ def main():
                     st.audio(audio_bytes, format='audio/mp3')
 
                 except sr.UnknownValueError:
-                    st.error("Couldn't understand. Please try again.")
+                    st.error("Couldn't understand the audio. Please try again.")
                 except sr.RequestError as e:
-                    st.error(f"Error with the speech recognition service; {e}")
+                    st.error(f"Error with the speech recognition service: {e}")
 
     elif input_method == "Text":
         text_input = st.text_area("Enter text to translate:")
