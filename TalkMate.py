@@ -28,13 +28,6 @@ def record_audio(filename="output.wav", duration=10):
     os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
     return filename
 
-# Function to recognize speech using Google Web Speech API
-def recognize_speech_from_file(filename):
-    r = sr.Recognizer()
-    with sr.AudioFile(filename) as source:
-        audio = r.record(source)
-    return r.recognize_google(audio)
-
 def main():
     st.title("Language Translator")
 
@@ -52,7 +45,10 @@ def main():
 
             # Recognize speech using Google Web Speech API
             try:
-                speech_text = recognize_speech_from_file(filename)
+                r = sr.Recognizer()
+                with sr.AudioFile(filename) as source:
+                    audio = r.record(source)
+                speech_text = r.recognize_google(audio)
                 st.write(f"Recognized text: {speech_text}")
 
                 # Translate the recognized text
@@ -69,10 +65,8 @@ def main():
                 # Display the audio player
                 st.audio(audio_bytes, format='audio/mp3')
 
-            except sr.UnknownValueError:
-                st.error("Couldn't understand. Please try again.")
-            except sr.RequestError as e:
-                st.error(f"Error with the speech recognition service; {e}")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
 
     elif input_method == "Text":
         text_input = st.text_area("Enter text to translate:")
