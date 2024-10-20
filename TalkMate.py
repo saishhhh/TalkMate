@@ -2,7 +2,7 @@ import streamlit as st
 from googletrans import Translator
 from gtts import gTTS
 import io
-import os
+import speech_recognition as sr
 
 # Popular languages for translation
 LANGUAGES = {
@@ -17,12 +17,6 @@ LANGUAGES = {
     'Italian': 'it',
 }
 
-# Function to record audio using ffmpeg for 10 seconds
-def record_audio(filename="output.wav", duration=10):
-    st.write("Recording...")
-    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
-    return filename
-
 def main():
     st.title("Language Translator")
 
@@ -34,14 +28,12 @@ def main():
     input_method = st.radio("Choose input method:", ("Audio", "Text"))
 
     if input_method == "Audio":
-        if st.button("Record and Translate"):
-            # Record audio for 10 seconds
-            filename = record_audio(duration=10)
-
+        audio_file = st.file_uploader("Upload an audio file (WAV format):", type=["wav"])
+        if audio_file is not None:
             # Recognize speech using Google Web Speech API
             try:
                 r = sr.Recognizer()
-                with sr.AudioFile(filename) as source:
+                with sr.AudioFile(audio_file) as source:
                     audio = r.record(source)
                 speech_text = r.recognize_google(audio)
                 st.write(f"Recognized text: {speech_text}")
@@ -83,7 +75,7 @@ def main():
                 st.warning("Please enter some text.")
 
     # Footer text
-    st.markdown("""
+    st.markdown(""" 
         <style>
         .footer {
             position: fixed;
