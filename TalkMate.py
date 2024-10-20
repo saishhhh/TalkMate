@@ -3,6 +3,15 @@ from googletrans import Translator
 from gtts import gTTS
 import io
 import os
+import sounddevice as sd
+import numpy as np
+import wavio
+from google.cloud import speech_v1p1beta1 as speech
+from google.oauth2 import service_account
+
+# Load credentials for Google Cloud Speech API
+CREDENTIALS = "path_to_your_service_account_credentials.json"
+credentials = service_account.Credentials.from_service_account_file(CREDENTIALS)
 
 # Popular languages for translation
 LANGUAGES = {
@@ -17,11 +26,31 @@ LANGUAGES = {
     'Italian': 'it',
 }
 
-# Function to record audio using ffmpeg for 10 seconds
-def record_audio(filename="output.wav", duration=10):
+# Function to record audio using sounddevice and wavio
+def record_audio(filename="output.wav", duration=10, fs=44100):
     st.write("Recording...")
-    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
+    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    sd.wait()  # Wait for the recording to finish
+    wavio.write(filename, recording, fs, sampwidth=2)
     return filename
+
+# Function to transcribe speech using Google Cloud Speech API
+def transcribe_speech(filename):
+    client = speech.SpeechClient(credentials=credentials)
+
+    with io.open(filename, "rb") as audio_file:
+        content = audio_file.read()
+
+    audio = speech.RecognitionAudio(content=content)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=44100,
+        language_code="en-US",
+    )
+
+    response = client.recognize(config=config, audio=audio)
+    for result in response.results:
+        return result.alternatives[0].transcript
 
 def main():
     st.title("Language Translator")
@@ -38,12 +67,9 @@ def main():
             # Record audio for 10 seconds
             filename = record_audio(duration=10)
 
-            # Recognize speech using Google Web Speech API
+            # Recognize speech using Google Cloud Speech API
             try:
-                r = sr.Recognizer()
-                with sr.AudioFile(filename) as source:
-                    audio = r.record(source)
-                speech_text = r.recognize_google(audio)
+                speech_text = transcribe_speech(filename)
                 st.write(f"Recognized text: {speech_text}")
 
                 # Translate the recognized text
