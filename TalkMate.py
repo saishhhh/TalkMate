@@ -1,10 +1,8 @@
 import streamlit as st
-import numpy as np
-import sounddevice as sd
-import wavio
 from googletrans import Translator
 from gtts import gTTS
 import io
+import os
 import speech_recognition as sr
 
 # Popular languages for translation
@@ -20,14 +18,11 @@ LANGUAGES = {
     'Italian': 'it',
 }
 
-# Function to record audio
-def record_audio(duration=10):
-    fs = 44100  # Sample rate
+# Function to record audio using ffmpeg for 10 seconds
+def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
-    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='int16')
-    sd.wait()  # Wait until recording is finished
-    wavio.write("output.wav", audio, fs, sampwidth=2)
-    return "output.wav"
+    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
+    return filename
 
 def main():
     st.title("Language Translator")
@@ -36,61 +31,38 @@ def main():
     language = st.selectbox("Choose a language to translate to:", list(LANGUAGES.keys()))
     lang_code = LANGUAGES[language]
 
-    # Option to choose between audio or text input
-    input_method = st.radio("Choose input method:", ("Audio", "Text"))
+    # Button to record audio and translate
+    if st.button("Record and Translate"):
+        # Record audio for 10 seconds
+        filename = record_audio(duration=10)
 
-    if input_method == "Audio":
-        duration = st.number_input("Recording Duration (seconds):", min_value=1, value=10, step=1)
-        if st.button("Record and Translate"):
-            # Record audio for the specified duration
-            filename = record_audio(duration)
+        # Recognize speech using Google Web Speech API
+        try:
+            r = sr.Recognizer()
+            with sr.AudioFile(filename) as source:
+                audio = r.record(source)
+            speech_text = r.recognize_google(audio)
+            st.write(f"Recognized text: {speech_text}")
 
-            # Recognize speech using Google Web Speech API
-            try:
-                r = sr.Recognizer()
-                with sr.AudioFile(filename) as source:
-                    audio = r.record(source)
-                speech_text = r.recognize_google(audio)
-                st.write(f"Recognized text: {speech_text}")
+            # Translate the recognized text
+            translator = Translator()
+            translated_text = translator.translate(speech_text, dest=lang_code).text
+            st.write(f"Translated text: {translated_text}")
 
-                # Translate the recognized text
-                translator = Translator()
-                translated_text = translator.translate(speech_text, dest=lang_code).text
-                st.write(f"Translated text: {translated_text}")
+            # Convert translated text to speech
+            voice = gTTS(translated_text, lang=lang_code)
+            audio_bytes = io.BytesIO()
+            voice.write_to_fp(audio_bytes)
+            audio_bytes.seek(0)
 
-                # Convert translated text to speech
-                voice = gTTS(translated_text, lang=lang_code)
-                audio_bytes = io.BytesIO()
-                voice.write_to_fp(audio_bytes)
-                audio_bytes.seek(0)
+            # Display the audio player
+            st.audio(audio_bytes, format='audio/mp3')
 
-                # Display the audio player
-                st.audio(audio_bytes, format='audio/mp3')
-
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-
-    elif input_method == "Text":
-        text_input = st.text_area("Enter text to translate:")
-        if st.button("Translate"):
-            if text_input:
-                translator = Translator()
-                translated_text = translator.translate(text_input, dest=lang_code).text
-                st.write(f"Translated text: {translated_text}")
-
-                # Convert translated text to speech
-                voice = gTTS(translated_text, lang=lang_code)
-                audio_bytes = io.BytesIO()
-                voice.write_to_fp(audio_bytes)
-                audio_bytes.seek(0)
-
-                # Display the audio player
-                st.audio(audio_bytes, format='audio/mp3')
-            else:
-                st.warning("Please enter some text.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
     # Footer text
-    st.markdown(""" 
+    st.markdown("""
         <style>
         .footer {
             position: fixed;
