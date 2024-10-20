@@ -3,14 +3,6 @@ from googletrans import Translator
 from gtts import gTTS
 import io
 import os
-from pydub import AudioSegment
-from pydub.playback import play
-from google.cloud import speech_v1p1beta1 as speech
-from google.oauth2 import service_account
-
-# Load credentials for Google Cloud Speech API
-CREDENTIALS = "path_to_your_service_account_credentials.json"
-credentials = service_account.Credentials.from_service_account_file(CREDENTIALS)
 
 # Popular languages for translation
 LANGUAGES = {
@@ -25,30 +17,11 @@ LANGUAGES = {
     'Italian': 'it',
 }
 
-# Function to record audio using ffmpeg (or pydub for cross-platform support)
+# Function to record audio using ffmpeg for 10 seconds
 def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
     os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
-    # For other platforms, you can adjust the input device in ffmpeg
     return filename
-
-# Function to transcribe speech using Google Cloud Speech API
-def transcribe_speech(filename):
-    client = speech.SpeechClient(credentials=credentials)
-
-    with io.open(filename, "rb") as audio_file:
-        content = audio_file.read()
-
-    audio = speech.RecognitionAudio(content=content)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=44100,
-        language_code="en-US",
-    )
-
-    response = client.recognize(config=config, audio=audio)
-    for result in response.results:
-        return result.alternatives[0].transcript
 
 def main():
     st.title("Language Translator")
@@ -65,9 +38,12 @@ def main():
             # Record audio for 10 seconds
             filename = record_audio(duration=10)
 
-            # Recognize speech using Google Cloud Speech API
+            # Recognize speech using Google Web Speech API
             try:
-                speech_text = transcribe_speech(filename)
+                r = sr.Recognizer()
+                with sr.AudioFile(filename) as source:
+                    audio = r.record(source)
+                speech_text = r.recognize_google(audio)
                 st.write(f"Recognized text: {speech_text}")
 
                 # Translate the recognized text
@@ -127,3 +103,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+error in code when i run it on streamlit website
+
+when i press "record and translate" this is coming 
+An error occurred: name 'sr' is not defined
