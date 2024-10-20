@@ -3,7 +3,6 @@ from googletrans import Translator
 from gtts import gTTS
 import io
 import os
-import speech_recognition as sr
 
 # Popular languages for translation
 LANGUAGES = {
@@ -31,35 +30,57 @@ def main():
     language = st.selectbox("Choose a language to translate to:", list(LANGUAGES.keys()))
     lang_code = LANGUAGES[language]
 
-    # Button to record audio and translate
-    if st.button("Record and Translate"):
-        # Record audio for 10 seconds
-        filename = record_audio(duration=10)
+    # Option to choose between audio or text input
+    input_method = st.radio("Choose input method:", ("Audio", "Text"))
 
-        # Recognize speech using Google Web Speech API
-        try:
-            r = sr.Recognizer()
-            with sr.AudioFile(filename) as source:
-                audio = r.record(source)
-            speech_text = r.recognize_google(audio)
-            st.write(f"Recognized text: {speech_text}")
+    if input_method == "Audio":
+        if st.button("Record and Translate"):
+            # Record audio for 10 seconds
+            filename = record_audio(duration=10)
 
-            # Translate the recognized text
-            translator = Translator()
-            translated_text = translator.translate(speech_text, dest=lang_code).text
-            st.write(f"Translated text: {translated_text}")
+            # Recognize speech using Google Web Speech API
+            try:
+                r = sr.Recognizer()
+                with sr.AudioFile(filename) as source:
+                    audio = r.record(source)
+                speech_text = r.recognize_google(audio)
+                st.write(f"Recognized text: {speech_text}")
 
-            # Convert translated text to speech
-            voice = gTTS(translated_text, lang=lang_code)
-            audio_bytes = io.BytesIO()
-            voice.write_to_fp(audio_bytes)
-            audio_bytes.seek(0)
+                # Translate the recognized text
+                translator = Translator()
+                translated_text = translator.translate(speech_text, dest=lang_code).text
+                st.write(f"Translated text: {translated_text}")
 
-            # Display the audio player
-            st.audio(audio_bytes, format='audio/mp3')
+                # Convert translated text to speech
+                voice = gTTS(translated_text, lang=lang_code)
+                audio_bytes = io.BytesIO()
+                voice.write_to_fp(audio_bytes)
+                audio_bytes.seek(0)
 
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+                # Display the audio player
+                st.audio(audio_bytes, format='audio/mp3')
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+    elif input_method == "Text":
+        text_input = st.text_area("Enter text to translate:")
+        if st.button("Translate"):
+            if text_input:
+                translator = Translator()
+                translated_text = translator.translate(text_input, dest=lang_code).text
+                st.write(f"Translated text: {translated_text}")
+
+                # Convert translated text to speech
+                voice = gTTS(translated_text, lang=lang_code)
+                audio_bytes = io.BytesIO()
+                voice.write_to_fp(audio_bytes)
+                audio_bytes.seek(0)
+
+                # Display the audio player
+                st.audio(audio_bytes, format='audio/mp3')
+            else:
+                st.warning("Please enter some text.")
 
     # Footer text
     st.markdown("""
@@ -82,3 +103,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+edit this code and remove the radio options
