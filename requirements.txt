@@ -2,8 +2,6 @@ streamlit
 google-cloud-speech
 google-auth
 googletrans==4.0.0-rc1
-speechrecognition
 gtts
-sounddevice
+pydub
 numpy
-wavio
