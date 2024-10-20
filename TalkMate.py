@@ -3,9 +3,8 @@ from googletrans import Translator
 from gtts import gTTS
 import io
 import os
-import sounddevice as sd
-import numpy as np
-import wavio
+from pydub import AudioSegment
+from pydub.playback import play
 from google.cloud import speech_v1p1beta1 as speech
 from google.oauth2 import service_account
 
@@ -26,12 +25,11 @@ LANGUAGES = {
     'Italian': 'it',
 }
 
-# Function to record audio using sounddevice and wavio
-def record_audio(filename="output.wav", duration=10, fs=44100):
+# Function to record audio using ffmpeg (or pydub for cross-platform support)
+def record_audio(filename="output.wav", duration=10):
     st.write("Recording...")
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
-    sd.wait()  # Wait for the recording to finish
-    wavio.write(filename, recording, fs, sampwidth=2)
+    os.system(f"ffmpeg -f avfoundation -i :0 -t {duration} {filename}")  # macOS specific command
+    # For other platforms, you can adjust the input device in ffmpeg
     return filename
 
 # Function to transcribe speech using Google Cloud Speech API
