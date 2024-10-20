@@ -103,7 +103,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-error in code when i run it on streamlit website
-
-when i press "record and translate" this is coming 
-An error occurred: name 'sr' is not defined
